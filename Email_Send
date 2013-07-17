@@ -18,7 +18,6 @@ Do
 
 Application.Run "'" & ThisWorkbook.Name & "'!Email_Content.Email_Sender"
 
-LoopEnd:
    xxx = xxx + 1
    Range("A" & xxx).Select
 Loop Until IsEmpty(ActiveCell)
