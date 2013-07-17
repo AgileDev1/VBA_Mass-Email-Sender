@@ -1,0 +1,35 @@
+Sub Email_Send()
+
+Application.ScreenUpdating = False
+    
+'Run Program to send out email
+Workbooks(ThisWorkbook.Name).Activate
+Application.Goto Range("A1"), True
+
+If Worksheets("Message").Range("F1").Value <> "" Then
+xxx = Worksheets("Message").Range("F1").Value
+Else
+xxx = 5
+End If
+
+Range("A" & xxx).Select
+
+Do
+
+Application.Run "'" & ThisWorkbook.Name & "'!Email_Content.Email_Sender"
+
+LoopEnd:
+   xxx = xxx + 1
+   Range("A" & xxx).Select
+Loop Until IsEmpty(ActiveCell)
+    
+Exit_Sub:
+
+Workbooks(ThisWorkbook.Name).Worksheets("Email List").Activate
+Columns("H:Z").Delete
+Cells.EntireRow.AutoFit
+Application.Goto Range("A1"), True
+
+Application.ScreenUpdating = True
+
+End Sub
