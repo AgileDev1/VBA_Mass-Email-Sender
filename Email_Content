@@ -1,0 +1,276 @@
+Global lngLoop As Long
+
+Option Explicit
+
+
+Sub Email_Sender()
+    
+    'Send email only to the selected person on the active worksheet
+    lngLoop = ActiveCell.Row
+    With ActiveSheet
+        Call SendMessage(strTo:=.Cells(lngLoop, 3).Value, strCC:=.Cells(lngLoop, 4).Value, strBCC:=.Cells(lngLoop, 5).Value, strSubject:=Worksheets("Message").Range("B5").Value, strMessagetop:=Worksheets("Message").Range("B9").Value, strMessagebottom:=Worksheets("Message").Range("B15").Value, strMessageclose:=Worksheets("Message").Range("B20").Value, strMessageps:=Worksheets("Message").Range("B22").Value, rngToCopy:=Worksheets("Message").Range("H4"))
+    End With
+    
+End Sub
+
+
+
+Sub SendMessage(strTo As String, Optional strCC As String, Optional strBCC As String, Optional strSubject As String, Optional strMessagetop As String, Optional strMessagebottom As String, Optional strMessageclose As String, Optional strMessageps As String, Optional strGreeting As String, Optional strData As String, Optional strAttachmentPath As String, Optional rngToCopy As Range, Optional copydata As Range, Optional blnShowEmailBodyWithoutSending As Boolean = False)
+    
+    Dim objOutlook As Outlook.Application
+    Dim objOutlookMsg As Outlook.MailItem
+    Dim objOutlookRecip As Outlook.Recipient
+    Dim objOutlookAttach As Outlook.Attachment
+
+    If Trim(strTo) & Trim(strCC) & Trim(strBCC) = "" Then
+        Exit Sub
+    End If
+    
+    ' Create the Outlook session.
+    On Error Resume Next
+    Set objOutlook = GetObject(, "Outlook.Application")
+    Err.Clear: On Error GoTo -1: On Error GoTo 0
+    If objOutlook Is Nothing Then
+        Set objOutlook = CreateObject("Outlook.Application")
+    End If
+
+    ' Create the message.
+    Set objOutlookMsg = objOutlook.CreateItem(olMailItem)
+
+    With objOutlookMsg
+        ' Add the To recipient(s) to the message.
+       If Trim(strTo) <> "" Then
+
+            'Multiple email address Consideration
+            Dim rFound
+            Set rFound = Cells(lngLoop, 3).Find(";", , , LookAt:=xlPart)
+            If Not rFound Is Nothing Then
+                Cells(lngLoop, 3).Copy
+                Workbooks.Add
+                ActiveSheet.Paste
+                Range("A1").TextToColumns Destination:=Range("A1"), DataType:=xlDelimited, Semicolon:=True
+                Range("A1", Range("A1").End(xlToRight)).Copy
+                ActiveCell.Offset(1).PasteSpecial Paste:=xlPasteValues, Transpose:=True
+                Range("A1").EntireRow.Delete
+                Range("A1").Select
+                Dim xxx
+                xxx = 1
+                Do
+                strTo = Cells(xxx, 1).Value
+                Set objOutlookRecip = .Recipients.Add(strTo)
+                objOutlookRecip.Type = olTo
+                xxx = xxx + 1
+                Loop Until Cells(xxx, 1).Value = ""
+                ActiveWorkbook.Close SaveChanges:=False
+    
+                Else
+                
+                Set objOutlookRecip = .Recipients.Add(strTo)
+                objOutlookRecip.Type = olTo
+            
+            End If
+            
+        End If
+        
+        ' Add the CC recipient(s) to the message.
+        If Trim(strCC) <> "" Then
+        
+            'Multiple email address Consideration
+            Set rFound = Cells(lngLoop, 4).Find(";", , , LookAt:=xlPart)
+            If Not rFound Is Nothing Then
+                Cells(lngLoop, 4).Copy
+                Workbooks.Add
+                ActiveSheet.Paste
+                Range("A1").TextToColumns Destination:=Range("A1"), DataType:=xlDelimited, Semicolon:=True
+                Range("A1", Range("A1").End(xlToRight)).Copy
+                ActiveCell.Offset(1).PasteSpecial Paste:=xlPasteValues, Transpose:=True
+                Range("A1").EntireRow.Delete
+                Range("A1").Select
+                xxx = 1
+                Do
+                strCC = Cells(xxx, 1).Value
+                Set objOutlookRecip = .Recipients.Add(strCC)
+                objOutlookRecip.Type = olCC
+                xxx = xxx + 1
+                Loop Until Cells(xxx, 1).Value = ""
+                ActiveWorkbook.Close SaveChanges:=False
+    
+                Else
+
+                Set objOutlookRecip = .Recipients.Add(strCC)
+                objOutlookRecip.Type = olCC
+                
+            End If
+                
+        End If
+
+       ' Add the BCC recipient(s) to the message.
+       If Trim(strBCC) <> "" Then
+       
+            'Multiple email address Consideration
+            Set rFound = Cells(lngLoop, 5).Find(";", , , LookAt:=xlPart)
+            If Not rFound Is Nothing Then
+                Cells(lngLoop, 5).Copy
+                Workbooks.Add
+                ActiveSheet.Paste
+                Range("A1").TextToColumns Destination:=Range("A1"), DataType:=xlDelimited, Semicolon:=True
+                Range("A1", Range("A1").End(xlToRight)).Copy
+                ActiveCell.Offset(1).PasteSpecial Paste:=xlPasteValues, Transpose:=True
+                Range("A1").EntireRow.Delete
+                Range("A1").Select
+                xxx = 1
+                Do
+                strBCC = Cells(xxx, 1).Value
+                Set objOutlookRecip = .Recipients.Add(strBCC)
+                objOutlookRecip.Type = olBCC
+                xxx = xxx + 1
+                Loop Until Cells(xxx, 1).Value = ""
+                ActiveWorkbook.Close SaveChanges:=False
+    
+                Else
+                    
+                Set objOutlookRecip = .Recipients.Add(strBCC)
+                objOutlookRecip.Type = olBCC
+            End If
+            
+        End If
+
+       ' Set the Subject, Body, and Importance of the message.
+       strSubject = Worksheets("Message").Range("B5").Value
+       If strSubject = "" Then
+            strSubject = "Greetings!"
+       End If
+       .Subject = strSubject
+       
+       strGreeting = Worksheets("Message").Range("B7").Value & " " & Range("B" & lngLoop)
+       
+       strMessagetop = Worksheets("Message").Range("B9").Value
+       
+       strMessagebottom = Worksheets("Message").Range("B15").Value
+       
+            .Body = strGreeting & "," & _
+              "<br><br>" & _
+              strMessagetop & _
+              "<br>"
+       
+       If Not rngToCopy Is Nothing Then
+        .HTMLBody = .Body & RangetoHTML(rngToCopy) & "<br>" & strMessagebottom & "<br><br>" & strMessageclose & "<br><br>" & Worksheets("Message").Range("B3").Value & "<br><br><br>" & strMessageps & "<br><br>"
+       End If
+        
+       ' Resolve each Recipient's name.
+       For Each objOutlookRecip In .Recipients
+           objOutlookRecip.Resolve
+       Next
+       
+       'Display the message or send it?
+       If blnShowEmailBodyWithoutSending Then
+           
+           'Auto Send Without Prompt
+           .Display
+            Application.Wait (Now + TimeValue("0:00:02"))
+            
+            'Send
+            Application.SendKeys "%s"
+            
+            Application.ScreenUpdating = True
+            Application.Wait (Now + TimeValue("0:00:01"))
+            Application.ScreenUpdating = False
+       Else
+       
+           'Auto Send Without Prompt
+           .Display
+           Application.Wait (Now + TimeValue("0:00:02"))
+            
+            'Send
+           Application.SendKeys "%s"
+            
+           Application.ScreenUpdating = True
+           Application.Wait (Now + TimeValue("0:00:01"))
+           Application.ScreenUpdating = False
+            
+       End If
+       End With
+    
+    Set objOutlook = Nothing
+    Set objOutlookMsg = Nothing
+    Set objOutlookAttach = Nothing
+    Set objOutlookRecip = Nothing
+    
+End Sub
+
+
+Function RangetoHTML(rng As Range)
+
+    Dim fso As Object
+    Dim ts As Object
+    Dim TempFile As String
+    Dim TempWB As Workbook
+
+    TempFile = Environ$("temp") & "/" & Format(Now, "dd-mm-yy h-mm-ss") & ".htm"
+ 
+    ' Copy the range and create a workbook to receive the data.
+    rng.Copy
+    Set TempWB = Workbooks.Add(1)
+    With TempWB.Sheets(1)
+        .Cells(1).PasteSpecial Paste:=8
+        .Cells(1).PasteSpecial xlPasteValues, , False, False
+        .Cells(1).PasteSpecial xlPasteFormats, , False, False
+        .Cells(1).Select
+        Application.CutCopyMode = False
+        
+        'Fix column, row
+        Columns("A:A").ColumnWidth = 70
+        Rows.AutoFit
+        
+        'Clear borders
+        Selection.Borders(xlEdgeRight).LineStyle = xlNone
+        Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+        Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+        Selection.Borders(xlEdgeLeft).LineStyle = xlNone
+        Selection.Borders(xlEdgeTop).LineStyle = xlNone
+        Selection.Borders(xlEdgeBottom).LineStyle = xlNone
+        Selection.Borders(xlEdgeRight).LineStyle = xlNone
+        Selection.Borders(xlInsideVertical).LineStyle = xlNone
+        Selection.Borders(xlInsideHorizontal).LineStyle = xlNone
+        
+        'Change font
+        With Selection.Font
+            .Name = "Times New Roman"
+             .Size = 12
+        End With
+    
+        On Error Resume Next
+        .DrawingObjects.Visible = True
+        .DrawingObjects.Delete
+        On Error GoTo 0
+    End With
+ 
+    ' Publish the sheet to an .htm file.
+    With TempWB.PublishObjects.Add( _
+         SourceType:=xlSourceRange, _
+         Filename:=TempFile, _
+         Sheet:=TempWB.Sheets(1).Name, _
+         Source:=TempWB.Sheets(1).UsedRange.Address, _
+         HtmlType:=xlHtmlStatic)
+        .Publish (True)
+    End With
+ 
+    ' Read all data from the .htm file into the RangetoHTML subroutine.
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set ts = fso.GetFile(TempFile).OpenAsTextStream(1, -2)
+    RangetoHTML = ts.ReadAll
+    ts.Close
+    RangetoHTML = Replace(RangetoHTML, "align=center x:publishsource=", _
+                          "align=left x:publishsource=")
+ 
+    ' Close TempWB.
+    TempWB.Close SaveChanges:=False
+ 
+    ' Delete the htm file.
+    Kill TempFile
+ 
+    Set ts = Nothing
+    Set fso = Nothing
+    Set TempWB = Nothing
+    
+End Function
